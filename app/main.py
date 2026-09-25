@@ -15,6 +15,7 @@ from .avoid import avoid_subtitles, build_avoid_srt
 from .parsers import parse_script, parse_srt
 from .relayout import build_relayout_srt, relayout_subtitles
 from .retime import CalibPoint, build_srt, parse_timecode, retime_subtitles
+from .split import SWITCH_COST, build_split_srt, split_subtitles
 from .textnorm import normalize_text
 
 MAX_ITEMS = 2000          # 每侧条目数上限，防止 DP 规模过大导致请求过久
@@ -444,6 +445,83 @@ def api_avoid_srt(req: AvoidRequest):
             "Content-Disposition": 'attachment; filename="avoid.srt"'
         },
     )
+
+
+class SplitRequest(BaseModel):
+    srt: str = Field(
+        default="", description="双语 SRT 字幕（每块正文须恰好两行）"
+    )
+
+
+def _build_split_rows(srt_text: str):
+    if len(srt_text.encode("utf-8", errors="ignore")) > MAX_RAW_BYTES:
+        raise HTTPException(400, "SRT 超过 2 MB 大小限制")
+    try:
+        subs = parse_srt(srt_text)
+    except ValueError as exc:
+        raise HTTPException(400, f"SRT 解析失败：{exc}") from exc
+    if not subs:
+        raise HTTPException(400, "SRT 内容为空，请粘贴字幕")
+    if len(subs) > MAX_ITEMS:
+        raise HTTPException(
+            400, f"字幕块数超过 {MAX_ITEMS} 的上限，请拆分后再拆轨"
+        )
+    try:
+        return split_subtitles(subs)
+    except ValueError as exc:
+        raise HTTPException(400, f"拆轨失败：{exc}") from exc
+
+
+def _split_row_json(r) -> dict:
+    return {
+        "new_index": r.new_index,
+        "index": r.index,
+        "start_tc": r.start_tc,
+        "end_tc": r.end_tc,
+        "order": r.order,
+        "zh_line": r.zh_line,
+        "en_line": r.en_line,
+        "mismatch": r.mismatch,
+        "switched": r.switched,
+    }
+
+
+@app.post("/api/split")
+def api_split(req: SplitRequest):
+    rows = _build_split_rows(req.srt)
+    mismatch = sum(r.mismatch for r in rows)
+    switches = sum(1 for r in rows if r.switched)
+    return {
+        "summary": {
+            "total": len(rows),
+            "mismatch_chars": mismatch,
+            "switches": switches,
+            "switch_cost": SWITCH_COST * switches,
+            "total_cost": mismatch + SWITCH_COST * switches,
+        },
+        "rows": [_split_row_json(r) for r in rows],
+    }
+
+
+def _split_srt_response(rows, track: str, filename: str) -> Response:
+    data = build_split_srt(rows, track).encode("utf-8")
+    return Response(
+        content=data,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/split.zh.srt")
+def api_split_zh_srt(req: SplitRequest):
+    rows = _build_split_rows(req.srt)
+    return _split_srt_response(rows, "zh", "split.zh.srt")
+
+
+@app.post("/api/split.en.srt")
+def api_split_en_srt(req: SplitRequest):
+    rows = _build_split_rows(req.srt)
+    return _split_srt_response(rows, "en", "split.en.srt")
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

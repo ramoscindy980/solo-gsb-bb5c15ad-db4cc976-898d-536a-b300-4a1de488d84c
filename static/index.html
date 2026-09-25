@@ -9,7 +9,7 @@
 <body>
 <header class="topbar">
   <h1>字幕校稿对齐</h1>
-  <p class="subtitle">逐行对白稿 × SRT 全局单调对齐 · SRT 时间轴重定时（校准点分段线性映射）· SRT 断行排版（宽度约束下枚举最优断点）· SRT 时间避让（重叠/过近字幕整体平移修整）</p>
+  <p class="subtitle">逐行对白稿 × SRT 全局单调对齐 · SRT 时间轴重定时（校准点分段线性映射）· SRT 断行排版（宽度约束下枚举最优断点）· SRT 时间避让（重叠/过近字幕整体平移修整）· 双语 SRT 拆轨（每块两行拆分为中文轨/英文轨）</p>
 </header>
 
 <main>
@@ -18,6 +18,7 @@
     <button type="button" id="tabRetime" class="tab" data-tab="retime">SRT 时间轴重定时</button>
     <button type="button" id="tabRelayout" class="tab" data-tab="relayout">SRT 断行排版</button>
     <button type="button" id="tabAvoid" class="tab" data-tab="avoid">SRT 时间避让</button>
+    <button type="button" id="tabSplit" class="tab" data-tab="split">双语 SRT 拆轨</button>
   </nav>
 
   <div id="viewAlign">
@@ -245,11 +246,69 @@
     </table>
   </section>
   </div><!-- /viewAvoid -->
+
+  <div id="viewSplit" class="hidden">
+  <section class="input-grid">
+    <div class="pane">
+      <div class="pane-head">
+        <label for="spSrt">双语 SRT 字幕（每块正文须恰好两行：一行中文、一行英文）</label>
+        <button type="button" class="ghost" id="spSample">填入示例</button>
+      </div>
+      <textarea id="spSrt" spellcheck="false"
+        placeholder="粘贴标准 SRT&#10;1&#10;00:00:01,000 --> 00:00:03,000&#10;你好，世界！&#10;Hello, world!"></textarea>
+    </div>
+    <div class="pane pane-help">
+      <div class="pane-head"><label>拆轨规则</label></div>
+      <ul class="rules">
+        <li>每块正文<b>恰好两行</b>：一行归入中文轨，另一行归入英文轨；行数不符的块会<b>指出块号并拒绝导出</b>。</li>
+        <li><b>汉字落在英文轨</b>、<b>拉丁字母落在中文轨</b>，每个字符各计 1 分错配；数字、标点等中性字符不计分。</li>
+        <li>相邻两块的中英行<b>上下顺序变化另计 2 分</b>。</li>
+        <li>每块归属由<b>全段总代价最小</b>的动态规划确定（非逐块贪心）；总代价相同时从第 1 块起逐块优先<b>中文在上</b>，使纯数字/标点行依邻块保持轨序稳定。</li>
+        <li>两轨 SRT 分别下载：<b>保留原时间码与正文行内容</b>，序号从 1 重新编号。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="controls">
+    <button type="button" id="spRunBtn" class="primary">开始拆轨</button>
+    <button type="button" id="spClearBtn" class="ghost">清空</button>
+    <span id="spStatus" class="status" role="status"></span>
+  </section>
+
+  <section id="spSummary" class="summary hidden">
+    <span class="chip chip-match">字幕块 <b id="spCnt">0</b></span>
+    <span class="chip chip-manual">错配字符 <b id="spMismatch">0</b></span>
+    <span class="chip chip-shifted">顺序变化 <b id="spSwitches">0</b> 次</span>
+    <span class="chip">总错配分 <b id="spTotal">0</b></span>
+    <span class="dl-btns">
+      <button type="button" id="spDownloadZhBtn" class="ghost">下载中文轨 SRT</button>
+      <button type="button" id="spDownloadEnBtn" class="ghost">下载英文轨 SRT</button>
+    </span>
+  </section>
+
+  <section id="spResultWrap" class="result-wrap hidden">
+    <table id="spTable">
+      <thead>
+        <tr>
+          <th class="col-rt-idx">新#</th>
+          <th class="col-rt-idx">原#</th>
+          <th class="col-tc">时间码</th>
+          <th class="col-sp-order">轨序</th>
+          <th class="col-sp-line">中文轨</th>
+          <th class="col-sp-line">英文轨</th>
+          <th class="col-sp-mismatch">错配</th>
+        </tr>
+      </thead>
+      <tbody id="spBody"></tbody>
+    </table>
+  </section>
+  </div><!-- /viewSplit -->
 </main>
 
 <script src="/static/app.js"></script>
 <script src="/static/retime.js"></script>
 <script src="/static/relayout.js"></script>
 <script src="/static/avoid.js"></script>
+<script src="/static/split.js"></script>
 </body>
 </html>

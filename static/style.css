@@ -263,6 +263,20 @@ td.cell-shift {
 tr.row-shifted { background: var(--single-bg); }
 tr.row-shifted td:first-child { border-left: 4px solid var(--single-border); }
 
+/* 双语 SRT 拆轨 */
+.col-sp-order { width: 128px; }
+.col-sp-line { min-width: 220px; }
+.col-sp-mismatch { width: 56px; text-align: right; }
+.badge-zh-top { background: var(--wrapped-border); color: #fff; }
+.badge-en-top { background: var(--single-border); color: #fff; }
+tr.row-zh-top { background: var(--wrapped-bg); }
+tr.row-zh-top td:first-child { border-left: 4px solid var(--wrapped-border); }
+tr.row-en-top { background: var(--single-bg); }
+tr.row-en-top td:first-child { border-left: 4px solid var(--single-border); }
+.switch-flag { color: #b06000; font-size: 12px; font-weight: 600; margin-left: 4px; white-space: nowrap; }
+.summary .dl-btns { margin-left: auto; display: flex; gap: 10px; }
+.summary .dl-btns .ghost { margin-left: 0; }
+
 .hidden { display: none; }
 
 @media (max-width: 860px) {
