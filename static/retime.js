@@ -1,6 +1,6 @@
 "use strict";
 
-// SRT 时间轴重定时 + 页签切换（对齐 / 重定时 / 断行排版 / 时间避让四个页签共用）
+// SRT 时间轴重定时 + 页签切换（对齐 / 重定时 / 断行排版 / 时间避让 / 双语拆轨五个页签共用）
 (() => {
   const $ = (id) => document.getElementById(id);
 
@@ -10,6 +10,7 @@
     retime: $("viewRetime"),
     relayout: $("viewRelayout"),
     avoid: $("viewAvoid"),
+    split: $("viewSplit"),
   };
 
   function switchTab(name) {
